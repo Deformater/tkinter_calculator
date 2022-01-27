@@ -6,17 +6,19 @@ from styles import Style
 
 class Calc:
     BUTTONS = [
+        ['⅟x', '√x', 'x²', '/'],
         ['1', '2', '3', '+'],
         ['4', '5', '6', '-'],
         ['7', '8', '9', '*'],
-        ['AC', '0', '/', '=']
+        ['AC', '0', '.', '=']
     ]
 
     BUTTONS_TYPE = [
+        ['s', 's', 's', 's'],
         ['d', 'd', 'd', 's'],
         ['d', 'd', 'd', 's'],
         ['d', 'd', 'd', 's'],
-        ['r', 'd', 's', 'e'],
+        ['rd', 'd', 'sd', 'e'],
     ]
 
     ROW_COUNT = len(BUTTONS)
@@ -33,7 +35,9 @@ class Calc:
 
         self.__current_sign = None
         self.__value = 0
-        self.__current_value = 0
+        self.__current_value = None
+        self.__accuracy = 4
+        self.__point = False
 
         self.label = Label(text="0", font=32)
         self.render()
@@ -50,31 +54,64 @@ class Calc:
                 btn.place(relx=col * self.cell_rel_size[0], rely=row * self.cell_rel_size[1] + self.label_size[1],
                           relwidth=self.cell_rel_size[0], relheight=self.cell_rel_size[1])
                 self.buttons.append(btn)
-                self.style.update(btn, Calc.BUTTONS_TYPE[row][col])
+                self.style.update(btn, Calc.BUTTONS_TYPE[row][col][-1])
 
     def click(self, row, col):
-        if Calc.BUTTONS_TYPE[row][col] == 's':
+        if Calc.BUTTONS_TYPE[row][col][0] == 's':
             self.__sign_event(Calc.BUTTONS[row][col])
-        if Calc.BUTTONS_TYPE[row][col] == 'd':
-            self.__value_event(int(Calc.BUTTONS[row][col]))
-        if Calc.BUTTONS_TYPE[row][col] == 'e':
+        if Calc.BUTTONS_TYPE[row][col][0] == 'd':
+            self.__value_event(Calc.BUTTONS[row][col])
+        if Calc.BUTTONS_TYPE[row][col][0] == 'e':
             self.__equal_event()
-        if Calc.BUTTONS_TYPE[row][col] == 'r':
+        if Calc.BUTTONS_TYPE[row][col][0] == 'r':
             self.__reset_event()
 
     def __sign_event(self, sign: str):
+        if sign == '.':
+            if self.__current_value is not None:
+                self.__current_value = float(self.__current_value)
+                self.__point = True
+            return
+
         if not (self.__current_sign is None):
             self.__equal_event()
         elif not (self.__current_value is None):
             self.__value = self.__current_value
-        self.__current_sign = sign
-        self.__current_value = None
 
-    def __value_event(self, value: int):
+        match sign:
+            case '⅟x':
+                if self.__value != 0:
+                    self.__value **= -1
+                    self.__current_value = 0
+                    self.__equal_event()
+                    self.__current_value = self.__value
+            case '√x':
+                self.__value **= 0.5
+                self.__current_value = 0
+                self.__equal_event()
+                self.__current_value = self.__value
+            case 'x²':
+                self.__value **= 2
+                self.__current_value = 0
+                self.__equal_event()
+                self.__current_value = self.__value
+            case _:
+                self.__current_sign = sign
+                self.__current_value = None
+
+    def __value_event(self, value: int | str):
         if self.__current_value is None:
-            self.__current_value = value
+            self.__current_value = int(value)
         else:
-            self.__current_value = int(str(self.__current_value) + str(value))
+            if isinstance(self.__current_value, int):
+                self.__current_value = int(str(self.__current_value) + str(value))
+            if isinstance(self.__current_value, float) and\
+                    len(str(self.__current_value).split('.')[1]) <= self.__accuracy:
+                if str(self.__current_value).split('.')[1] == '0' and self.__point:
+                    self.__current_value = float(str(self.__current_value)[:-1] + str(value))
+                else:
+                    self.__current_value = float(str(self.__current_value) + str(value))
+                self.__point = False
 
         self.label['text'] = self.__current_value
 
@@ -88,11 +125,12 @@ class Calc:
             case '-':
                 self.__value -= self.__current_value
             case '*':
-                self.__value = round(self.__value * self.__current_value, 2)
+                self.__value *= self.__current_value
             case '/':
                 if self.__current_value != 0:
-                    self.__value = round(self.__value / self.__current_value, 2)
+                    self.__value /= self.__current_value
 
+        self.__value = round(self.__value, self.__accuracy)
         self.__value = int(self.__value) if int(self.__value) == self.__value else self.__value
 
         self.label['text'] = self.__value
