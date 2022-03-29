@@ -1,5 +1,5 @@
 # Tkinter calculator
-Simple math calculator on buil-in library Tkinter (only python 3.10 and later)
+Simple math calculator on build-in library Tkinter (only python 3.10 and later)
 
 ## Getting started
 No requirements needed, this project use only build-in dependenses!  
